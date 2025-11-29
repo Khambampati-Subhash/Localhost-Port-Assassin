@@ -2,6 +2,14 @@
 
 A powerful, lightning-fast desktop application to manage and kill localhost processes by port. **Essential for every developer.**
 
+---
+
+## ⚠️ IMPORTANT NOTE
+
+This is a **vibe coding project** created for fun on a Saturday. It will **NOT be improved or actively maintained**. Use it as-is. No future updates or bug fixes are planned.
+
+---
+
 ## 🎯 Why Port Assassin is Essential for Developers
 
 ### The Problem
@@ -58,15 +66,49 @@ Port Assassin gives you a sleek, modern UI that lets you:
 
 ---
 
-## 🛠️ Installation & Development
+## 🚀 Quick Start - How to Run Port Assassin
 
-### Prerequisites
+### One-Line Setup
 ```bash
-# Install Go (1.23+)
-# Install Node.js (16+)
-# Install Wails
+git clone <repository-url> && cd Localhost-Port-Assassin && wails dev
+```
+
+### Step-by-Step Instructions
+
+#### Prerequisites (One-time setup)
+```bash
+# Install Go 1.23+
+brew install go
+
+# Install Node.js 16+
+brew install node
+
+# Install Wails CLI
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 ```
+
+#### Run the Project
+
+**Option 1: Development Mode (Recommended)**
+```bash
+cd Localhost-Port-Assassin
+wails dev
+```
+- Opens the app automatically
+- Hot-reload enabled for React components
+- Live Go code recompilation
+
+**Option 2: Production Build**
+```bash
+cd Localhost-Port-Assassin
+wails build
+```
+- Creates standalone executable in `build/bin/`
+- Can be distributed and run on other macOS systems
+
+---
+
+## 🛠️ Installation & Development
 
 ### Setup
 ```bash
@@ -74,7 +116,7 @@ go install github.com/wailsapp/wails/v2/cmd/wails@latest
 git clone <repository-url>
 cd Localhost-Port-Assassin
 
-# Install dependencies
+# Run development server
 wails dev
 ```
 
