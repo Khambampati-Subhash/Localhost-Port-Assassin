@@ -68,23 +68,26 @@ export function PortCard({ port, info, isWatched, onShowToast }: PortCardProps) 
     return (
         <>
             <div className={twMerge(
-                "group relative p-4 rounded-lg border transition-all duration-200 hover:shadow-lg",
+                "group relative p-4 rounded border transition-all duration-300",
                 isFree
-                    ? "bg-surface/30 border-surfaceHighlight hover:border-success/40"
-                    : "bg-surface/50 border-surfaceHighlight hover:border-accent/40"
+                    ? "border-lime-500/40 bg-lime-500/5 hover:border-lime-500/60 hover:bg-lime-500/10 hover:shadow-lg hover:shadow-lime-500/20"
+                    : "border-pink-500/40 bg-pink-500/5 hover:border-pink-500/60 hover:bg-pink-500/10 hover:shadow-lg hover:shadow-pink-500/20"
             )}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
                         <div className={twMerge(
-                            "w-8 h-8 rounded flex items-center justify-center border",
+                            "w-8 h-8 rounded flex items-center justify-center border font-mono text-xs font-bold",
                             isFree
-                                ? "bg-success/10 border-success/20 text-success"
-                                : "bg-accent/10 border-accent/20 text-accent"
+                                ? "border-lime-400/60 bg-lime-400/10 text-lime-400"
+                                : "border-pink-400/60 bg-pink-400/10 text-pink-400"
                         )}>
-                            <Terminal size={14} />
+                            <span>{port.toString().slice(0, 1)}</span>
                         </div>
                         <div>
-                            <span className="block text-lg font-mono font-medium text-primary">{port}</span>
+                            <span className={twMerge(
+                                "block text-2xl font-mono font-black tracking-wider",
+                                isFree ? "text-lime-400" : "text-pink-400"
+                            )} style={{textShadow: isFree ? '0 0 10px rgba(57, 255, 20, 0.3)' : '0 0 10px rgba(255, 0, 110, 0.3)'}}>{port}</span>
                         </div>
                     </div>
 
@@ -92,26 +95,27 @@ export function PortCard({ port, info, isWatched, onShowToast }: PortCardProps) 
                         <button
                             onClick={() => toggleFavorite(port)}
                             className={twMerge(
-                                "p-1 rounded transition-colors",
+                                "p-1 rounded transition-all",
                                 isFavorite
-                                    ? "text-yellow-400 hover:text-yellow-300"
-                                    : "text-secondary hover:text-yellow-400 opacity-0 group-hover:opacity-100"
+                                    ? "text-pink-400 hover:text-pink-300 opacity-100"
+                                    : "text-slate-600 hover:text-pink-400 opacity-0 group-hover:opacity-100"
                             )}
+                            style={isFavorite ? {textShadow: '0 0 10px rgba(255, 0, 110, 0.4)'} : {}}
                             title={isFavorite ? "Remove from favorites" : "Add to favorites"}
                         >
                             <Star size={14} fill={isFavorite ? "currentColor" : "none"} />
                         </button>
 
                         {isWatched && (
-                            <div className="px-1.5 py-0.5 rounded bg-surfaceHighlight border border-white/5 flex items-center gap-1">
-                                <Eye size={10} className="text-secondary" />
-                                <span className="text-[10px] uppercase tracking-wider font-semibold text-secondary">Watched</span>
+                            <div className="px-2 py-0.5 rounded border border-cyan-400/50 bg-cyan-400/10 flex items-center gap-1">
+                                <Eye size={10} className="text-cyan-400" />
+                                <span className="text-[10px] uppercase tracking-wider font-bold text-cyan-400">Watch</span>
                             </div>
                         )}
                         {isWatched && isFree && (
                             <button
                                 onClick={() => removeWatchedPort(port)}
-                                className="p-1 rounded hover:bg-surfaceHighlight text-secondary hover:text-danger transition-colors opacity-0 group-hover:opacity-100"
+                                className="p-1 rounded text-slate-600 hover:text-cyan-400 transition-colors opacity-0 group-hover:opacity-100"
                                 title="Stop watching"
                             >
                                 <EyeOff size={14} />
@@ -122,21 +126,21 @@ export function PortCard({ port, info, isWatched, onShowToast }: PortCardProps) 
 
                 <div className="space-y-3">
                     {isFree ? (
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2 text-success">
-                                <div className="w-1.5 h-1.5 rounded-full bg-success"></div>
-                                <span className="text-xs font-medium">Available</span>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2 text-lime-400">
+                                <div className="w-1.5 h-1.5 rounded-full bg-lime-400 animate-pulse"></div>
+                                <span className="text-xs font-mono font-bold">AVAILABLE</span>
                             </div>
-                            <p className="text-xs text-secondary">No process running</p>
+                            <p className="text-xs text-slate-500 font-mono">[ NO PROCESS ]</p>
                         </div>
                     ) : (
                         <>
-                            <div className="space-y-1">
-                                <div className="flex justify-between items-center text-xs text-secondary">
-                                    <span>Process</span>
-                                    <span className="font-mono">PID: {info.pid}</span>
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-xs text-slate-500 font-mono">
+                                    <span>PROCESS</span>
+                                    <span className="text-pink-400">PID: {info.pid}</span>
                                 </div>
-                                <div className="font-medium text-sm text-primary truncate" title={info.process}>
+                                <div className="font-mono text-sm text-cyan-300 truncate tracking-tight" title={info.process}>
                                     {info.process}
                                 </div>
                             </div>
@@ -145,12 +149,13 @@ export function PortCard({ port, info, isWatched, onShowToast }: PortCardProps) 
                                 onClick={handleKillProcess}
                                 disabled={isLoading}
                                 className={twMerge(
-                                    "w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded bg-surface border border-surfaceHighlight text-secondary hover:text-danger hover:border-danger/30 hover:bg-danger/5 transition-all duration-200 text-xs font-medium",
+                                    "w-full flex items-center justify-center gap-2 px-3 py-2 rounded border-2 border-red-500/60 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:border-red-500 hover:shadow-lg hover:shadow-red-500/20 transition-all duration-200 text-xs font-bold uppercase tracking-wide",
                                     isLoading && "opacity-50 cursor-not-allowed"
                                 )}
+                                style={{textShadow: '0 0 10px rgba(239, 68, 68, 0.3)'}}
                             >
                                 <Trash2 size={12} />
-                                <span>{isLoading ? 'Killing...' : 'Kill Process'}</span>
+                                <span>{isLoading ? 'KILLING...' : 'KILL'}</span>
                             </button>
                         </>
                     )}

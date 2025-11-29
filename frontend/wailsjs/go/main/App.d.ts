@@ -9,4 +9,6 @@ export function GetConfig():Promise<config.Config>;
 
 export function KillProcess(arg1:number):Promise<void>;
 
+export function KillProcessWithPassword(arg1:number,arg2:string):Promise<void>;
+
 export function SaveConfig(arg1:config.Config):Promise<void>;
