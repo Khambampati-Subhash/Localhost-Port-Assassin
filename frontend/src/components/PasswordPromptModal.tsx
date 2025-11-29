@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Loader } from 'lucide-react';
+import { Lock, AlertCircle, Loader } from 'lucide-react';
 
 interface PasswordPromptModalProps {
     isOpen: boolean;
@@ -34,83 +34,99 @@ export function PasswordPromptModal({
             await onConfirm(password);
             setPassword('');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to kill process');
+            setError(err instanceof Error ? err.message : 'Authentication failed');
         }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-            <div className="border border-cyan-500/50 rounded p-6 w-full max-w-sm shadow-2xl animate-slide-up bg-gradient-to-br from-slate-950 to-slate-900" style={{boxShadow: '0 0 40px rgba(0, 217, 255, 0.2), inset 0 0 20px rgba(0, 217, 255, 0.05)'}}>
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 rounded border border-cyan-400/60 bg-cyan-400/10 text-cyan-400">
-                        <Lock size={18} />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-black text-cyan-400 uppercase tracking-wide">Admin Access</h2>
-                        <p className="text-cyan-300/60 text-xs font-mono">[ PASSWORD REQUIRED ]</p>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-orange-500 to-rose-500 px-8 py-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                            <Lock className="text-white" size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-white">Admin Required</h2>
+                            <p className="text-white/80 text-sm">Enter your password to continue</p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="bg-slate-900/80 border border-pink-500/30 rounded p-3 mb-6">
-                    <p className="text-xs text-pink-400 mb-1.5 font-mono font-bold">TARGET:</p>
-                    <p className="text-sm font-mono text-cyan-300 truncate" title={processName}>
-                        {processName} <span className="text-pink-400 text-xs">[ PID: {pid} ]</span>
-                    </p>
+                {/* Body */}
+                <div className="p-8">
+                    {/* Warning */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex gap-3">
+                        <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={18} />
+                        <div className="text-sm">
+                            <p className="font-semibold text-amber-900">This process requires admin privileges</p>
+                            <p className="text-amber-700/80 text-xs mt-1">{processName} (PID: {pid})</p>
+                        </div>
+                    </div>
+
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Your Password
+                            </label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    setError('');
+                                }}
+                                disabled={isLoading}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all disabled:opacity-50 disabled:bg-gray-50"
+                                autoFocus
+                            />
+                            {error && (
+                                <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
+                                    <span>✕</span> {error}
+                                </p>
+                            )}
+                        </div>
+
+                        <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                            Your password is only used for sudo authentication and is never stored or logged.
+                        </p>
+
+                        {/* Actions */}
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onCancel();
+                                    setPassword('');
+                                    setError('');
+                                }}
+                                disabled={isLoading}
+                                className="flex-1 px-4 py-3 rounded-lg border-2 border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-all disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold hover:shadow-lg hover:shadow-orange-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader size={18} className="animate-spin" />
+                                        <span>Authenticating...</span>
+                                    </>
+                                ) : (
+                                    <span>Authenticate</span>
+                                )}
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-xs font-bold text-cyan-400 uppercase mb-2 tracking-wide">
-                            Password
-                        </label>
-                        <input
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => {
-                                setPassword(e.target.value);
-                                setError('');
-                            }}
-                            disabled={isLoading}
-                            className="w-full px-3 py-2.5 rounded border border-cyan-500/50 bg-slate-900/80 text-cyan-100 placeholder:text-cyan-500/40 focus:outline-none focus:border-cyan-400 focus:bg-slate-900 transition-all font-mono text-sm disabled:opacity-50"
-                            style={{boxShadow: 'inset 0 0 10px rgba(0, 217, 255, 0.05)'}}
-                            autoFocus
-                        />
-                        {error && (
-                            <p className="text-xs text-red-400 mt-2 font-mono">[ ERROR ] {error}</p>
-                        )}
-                    </div>
-
-                    <p className="text-xs text-slate-500 font-mono mb-5">
-                        [ Password used for sudo auth only. Never stored. ]
-                    </p>
-
-                    <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                onCancel();
-                                setPassword('');
-                                setError('');
-                            }}
-                            disabled={isLoading}
-                            className="flex-1 px-3 py-2 rounded border border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-300 transition-colors text-sm font-bold uppercase tracking-wide disabled:opacity-50"
-                        >
-                            Abort
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="flex-1 px-3 py-2 rounded border-2 border-cyan-500 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/20 transition-all text-sm font-bold uppercase tracking-wide disabled:opacity-50 flex items-center justify-center gap-2"
-                            style={{textShadow: '0 0 10px rgba(0, 217, 255, 0.4)'}}
-                        >
-                            {isLoading && <Loader size={14} className="animate-spin" />}
-                            <span>{isLoading ? 'PROCESSING...' : 'EXECUTE'}</span>
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
     );

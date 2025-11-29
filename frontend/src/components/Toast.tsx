@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { CheckCircle, AlertCircle, X } from 'lucide-react';
-import { twMerge } from 'tailwind-merge';
+import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -26,28 +25,28 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
 
     const typeConfig = {
         success: {
-            bgColor: 'bg-lime-500/10',
-            borderColor: 'border-lime-500/50',
-            titleColor: 'text-lime-400',
-            messageColor: 'text-lime-300',
-            icon: CheckCircle,
-            shadowColor: 'rgba(57, 255, 20, 0.2)',
+            bgColor: 'bg-emerald-50',
+            borderColor: 'border-emerald-200',
+            titleColor: 'text-emerald-900',
+            messageColor: 'text-emerald-700',
+            icon: CheckCircle2,
+            iconColor: 'text-emerald-600',
         },
         error: {
-            bgColor: 'bg-red-500/10',
-            borderColor: 'border-red-500/50',
-            titleColor: 'text-red-400',
-            messageColor: 'text-red-300',
+            bgColor: 'bg-red-50',
+            borderColor: 'border-red-200',
+            titleColor: 'text-red-900',
+            messageColor: 'text-red-700',
             icon: AlertCircle,
-            shadowColor: 'rgba(239, 68, 68, 0.2)',
+            iconColor: 'text-red-600',
         },
         info: {
-            bgColor: 'bg-cyan-500/10',
-            borderColor: 'border-cyan-500/50',
-            titleColor: 'text-cyan-400',
-            messageColor: 'text-cyan-300',
-            icon: AlertCircle,
-            shadowColor: 'rgba(0, 217, 255, 0.2)',
+            bgColor: 'bg-blue-50',
+            borderColor: 'border-blue-200',
+            titleColor: 'text-blue-900',
+            messageColor: 'text-blue-700',
+            icon: Info,
+            iconColor: 'text-blue-600',
         },
     };
 
@@ -56,23 +55,18 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
 
     return (
         <div
-            className={twMerge(
-                'animate-slide-up rounded border p-4 backdrop-blur-sm flex gap-3 items-start font-mono',
-                config.bgColor,
-                config.borderColor
-            )}
-            style={{boxShadow: `0 0 20px ${config.shadowColor}, inset 0 0 20px ${config.shadowColor.replace('0.2', '0.05')}`}}
+            className={`animate-slide-up rounded-xl border-2 p-4 shadow-lg flex gap-4 items-start ${config.bgColor} ${config.borderColor}`}
         >
-            <Icon className={twMerge('w-5 h-5 flex-shrink-0 mt-0.5', config.titleColor)} />
+            <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${config.iconColor}`} />
             <div className="flex-1">
-                <h3 className={twMerge('font-bold text-sm uppercase tracking-wide', config.titleColor)}>{title}</h3>
-                <p className={twMerge('text-xs mt-1 font-mono', config.messageColor)}>{message}</p>
+                <h3 className={`font-bold text-sm ${config.titleColor}`}>{title}</h3>
+                <p className={`text-sm mt-1 ${config.messageColor}`}>{message}</p>
             </div>
             <button
                 onClick={() => onClose(id)}
-                className="flex-shrink-0 text-slate-600 hover:text-slate-400 transition-colors"
+                className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
             >
-                <X size={16} />
+                <X size={18} />
             </button>
         </div>
     );
