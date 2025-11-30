@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { CheckCircle, AlertCircle, X } from 'lucide-react';
-import { twMerge } from 'tailwind-merge';
+import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -26,25 +25,28 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
 
     const typeConfig = {
         success: {
-            bgColor: 'bg-emerald-500/20',
-            borderColor: 'border-emerald-500/30',
-            titleColor: 'text-emerald-400',
-            messageColor: 'text-emerald-300',
-            icon: CheckCircle,
+            bgColor: 'bg-emerald-50',
+            borderColor: 'border-emerald-200',
+            titleColor: 'text-emerald-900',
+            messageColor: 'text-emerald-700',
+            icon: CheckCircle2,
+            iconColor: 'text-emerald-600',
         },
         error: {
-            bgColor: 'bg-red-500/20',
-            borderColor: 'border-red-500/30',
-            titleColor: 'text-red-400',
-            messageColor: 'text-red-300',
+            bgColor: 'bg-red-50',
+            borderColor: 'border-red-200',
+            titleColor: 'text-red-900',
+            messageColor: 'text-red-700',
             icon: AlertCircle,
+            iconColor: 'text-red-600',
         },
         info: {
-            bgColor: 'bg-blue-500/20',
-            borderColor: 'border-blue-500/30',
-            titleColor: 'text-blue-400',
-            messageColor: 'text-blue-300',
-            icon: AlertCircle,
+            bgColor: 'bg-blue-50',
+            borderColor: 'border-blue-200',
+            titleColor: 'text-blue-900',
+            messageColor: 'text-blue-700',
+            icon: Info,
+            iconColor: 'text-blue-600',
         },
     };
 
@@ -53,22 +55,18 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
 
     return (
         <div
-            className={twMerge(
-                'animate-slide-up rounded-lg border p-4 backdrop-blur-sm flex gap-3 items-start',
-                config.bgColor,
-                config.borderColor
-            )}
+            className={`animate-slide-up rounded-xl border-2 p-4 shadow-lg flex gap-4 items-start ${config.bgColor} ${config.borderColor}`}
         >
-            <Icon className={twMerge('w-5 h-5 flex-shrink-0 mt-0.5', config.titleColor)} />
+            <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${config.iconColor}`} />
             <div className="flex-1">
-                <h3 className={twMerge('font-semibold text-sm', config.titleColor)}>{title}</h3>
-                <p className={twMerge('text-xs mt-1', config.messageColor)}>{message}</p>
+                <h3 className={`font-bold text-sm ${config.titleColor}`}>{title}</h3>
+                <p className={`text-sm mt-1 ${config.messageColor}`}>{message}</p>
             </div>
             <button
                 onClick={() => onClose(id)}
-                className="flex-shrink-0 text-secondary hover:text-primary transition-colors"
+                className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
             >
-                <X size={16} />
+                <X size={18} />
             </button>
         </div>
     );

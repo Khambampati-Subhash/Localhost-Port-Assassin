@@ -1,173 +1,107 @@
-import { useState } from 'react';
-import { Trash2, Terminal, Eye, EyeOff, Star } from 'lucide-react';
+import { Trash2, Terminal, Eye, EyeOff, Activity } from 'lucide-react';
 import { PortInfo, usePortStore } from '../store/usePortStore';
-import { twMerge } from 'tailwind-merge';
-import { PasswordPromptModal } from './PasswordPromptModal';
+import { Card, CardContent, CardHeader } from './ui/card';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { cn } from '../lib/utils';
+import { motion } from 'framer-motion';
 
 interface PortCardProps {
     port: number;
-    info?: PortInfo;
+    info?: PortInfo; // If undefined, port is free
     isWatched: boolean;
-    onShowToast: (type: 'success' | 'error', title: string, message: string) => void;
 }
 
-export function PortCard({ port, info, isWatched, onShowToast }: PortCardProps) {
+export function PortCard({ port, info, isWatched }: PortCardProps) {
     const killProcess = usePortStore(state => state.killProcess);
-    const killProcessWithPassword = usePortStore(state => state.killProcessWithPassword);
     const removeWatchedPort = usePortStore(state => state.removeWatchedPort);
-    const toggleFavorite = usePortStore(state => state.toggleFavorite);
-    const favorites = usePortStore(state => state.favorites);
-
-    const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [attemptedKillWithPassword, setAttemptedKillWithPassword] = useState(false);
 
     const isFree = !info;
-    const isFavorite = favorites.includes(port);
-
-    const handleKillProcess = async () => {
-        if (!info) return;
-
-        setIsLoading(true);
-        try {
-            await killProcess(info.pid);
-            onShowToast('success', 'Process Killed', `Successfully killed ${info.process} (PID: ${info.pid})`);
-        } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : 'Failed to kill process';
-            if (errorMsg.includes('Permission denied') || errorMsg.includes('Operation not permitted')) {
-                onShowToast('error', 'Permission Denied', 'Need admin privileges. Try using sudo password.');
-                setAttemptedKillWithPassword(true);
-                setShowPasswordModal(true);
-            } else {
-                onShowToast('error', 'Kill Failed', errorMsg);
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleKillWithPassword = async (password: string) => {
-        if (!info) return;
-
-        setIsLoading(true);
-        try {
-            await killProcessWithPassword(info.pid, password);
-            setShowPasswordModal(false);
-            onShowToast('success', 'Process Killed', `Successfully killed ${info.process} (PID: ${info.pid}) with sudo`);
-        } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : 'Failed to kill process';
-            if (errorMsg.includes('password') || errorMsg.includes('denied') || errorMsg.includes('incorrect')) {
-                throw new Error('Incorrect password or sudo failed');
-            }
-            throw err;
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     return (
-        <>
-            <div className={twMerge(
-                "group relative p-4 rounded-lg border transition-all duration-200 hover:shadow-lg",
-                isFree
-                    ? "bg-surface/30 border-surfaceHighlight hover:border-success/40"
-                    : "bg-surface/50 border-surfaceHighlight hover:border-accent/40"
-            )}>
-                <div className="flex justify-between items-start mb-4">
+        <Card className={cn(
+            "group relative overflow-hidden transition-all duration-300 hover:shadow-lg border-l-4",
+            isFree
+                ? "border-l-green-500 hover:border-green-500/50"
+                : "border-l-blue-500 hover:border-blue-500/50"
+        )}>
+            <CardHeader className="p-4 pb-2">
+                <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
-                        <div className={twMerge(
-                            "w-8 h-8 rounded flex items-center justify-center border",
+                        <div className={cn(
+                            "w-10 h-10 rounded-lg flex items-center justify-center border shadow-sm transition-colors",
                             isFree
-                                ? "bg-success/10 border-success/20 text-success"
-                                : "bg-accent/10 border-accent/20 text-accent"
+                                ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
+                                : "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
                         )}>
-                            <Terminal size={14} />
+                            <Terminal size={18} />
                         </div>
                         <div>
-                            <span className="block text-lg font-mono font-medium text-primary">{port}</span>
+                            <span className="block text-xl font-bold font-mono tracking-tight">{port}</span>
                         </div>
                     </div>
 
                     <div className="flex gap-2">
-                        <button
-                            onClick={() => toggleFavorite(port)}
-                            className={twMerge(
-                                "p-1 rounded transition-colors",
-                                isFavorite
-                                    ? "text-yellow-400 hover:text-yellow-300"
-                                    : "text-secondary hover:text-yellow-400 opacity-0 group-hover:opacity-100"
-                            )}
-                            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                        >
-                            <Star size={14} fill={isFavorite ? "currentColor" : "none"} />
-                        </button>
-
                         {isWatched && (
-                            <div className="px-1.5 py-0.5 rounded bg-surfaceHighlight border border-white/5 flex items-center gap-1">
-                                <Eye size={10} className="text-secondary" />
-                                <span className="text-[10px] uppercase tracking-wider font-semibold text-secondary">Watched</span>
-                            </div>
+                            <Badge variant="secondary" className="text-[10px] uppercase tracking-wider h-6 px-2 font-semibold">
+                                <Eye size={10} className="mr-1.5" />
+                                Watched
+                            </Badge>
                         )}
                         {isWatched && isFree && (
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={() => removeWatchedPort(port)}
-                                className="p-1 rounded hover:bg-surfaceHighlight text-secondary hover:text-danger transition-colors opacity-0 group-hover:opacity-100"
                                 title="Stop watching"
                             >
-                                <EyeOff size={14} />
-                            </button>
+                                <EyeOff size={14} className="text-muted-foreground hover:text-destructive" />
+                            </Button>
                         )}
                     </div>
                 </div>
+            </CardHeader>
 
-                <div className="space-y-3">
-                    {isFree ? (
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2 text-success">
-                                <div className="w-1.5 h-1.5 rounded-full bg-success"></div>
-                                <span className="text-xs font-medium">Available</span>
-                            </div>
-                            <p className="text-xs text-secondary">No process running</p>
+            <CardContent className="p-4 pt-3 space-y-4">
+                {isFree ? (
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            <span className="text-xs font-semibold uppercase tracking-wide">Available</span>
                         </div>
-                    ) : (
-                        <>
-                            <div className="space-y-1">
-                                <div className="flex justify-between items-center text-xs text-secondary">
-                                    <span>Process</span>
-                                    <span className="font-mono">PID: {info.pid}</span>
-                                </div>
-                                <div className="font-medium text-sm text-primary truncate" title={info.process}>
-                                    {info.process}
-                                </div>
+                        <p className="text-xs text-muted-foreground">Ready for new processes</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                <span className="uppercase tracking-wider font-semibold">Process</span>
+                                <span className="font-mono bg-secondary px-1.5 py-0.5 rounded text-[10px]">PID: {info.pid}</span>
                             </div>
+                            <div className="font-medium text-sm truncate p-2 bg-secondary/30 rounded-md border border-border/50" title={info.process}>
+                                {info.process}
+                            </div>
+                        </div>
 
-                            <button
-                                onClick={handleKillProcess}
-                                disabled={isLoading}
-                                className={twMerge(
-                                    "w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded bg-surface border border-surfaceHighlight text-secondary hover:text-danger hover:border-danger/30 hover:bg-danger/5 transition-all duration-200 text-xs font-medium",
-                                    isLoading && "opacity-50 cursor-not-allowed"
-                                )}
-                            >
-                                <Trash2 size={12} />
-                                <span>{isLoading ? 'Killing...' : 'Kill Process'}</span>
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            className="w-full h-8 text-xs font-medium shadow-sm opacity-90 hover:opacity-100 transition-opacity"
+                            onClick={() => killProcess(info.pid)}
+                        >
+                            <Trash2 size={12} className="mr-2" />
+                            Kill Process
+                        </Button>
+                    </>
+                )}
+            </CardContent>
 
-            <PasswordPromptModal
-                isOpen={showPasswordModal}
-                isLoading={isLoading}
-                processName={info?.process || 'Unknown'}
-                pid={info?.pid || 0}
-                onConfirm={handleKillWithPassword}
-                onCancel={() => {
-                    setShowPasswordModal(false);
-                    setAttemptedKillWithPassword(false);
-                }}
-            />
-        </>
+            {/* Background Pattern */}
+            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:16px_16px] pointer-events-none" />
+        </Card>
     );
 }

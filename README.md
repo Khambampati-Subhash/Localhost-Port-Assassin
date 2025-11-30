@@ -76,15 +76,42 @@ git clone <repository-url> && cd Localhost-Port-Assassin && wails dev
 ### Step-by-Step Instructions
 
 #### Prerequisites (One-time setup)
+
+**Step 1: Install Go 1.23+**
 ```bash
-# Install Go 1.23+
 brew install go
+```
 
-# Install Node.js 16+
+**Step 2: Install Node.js 16+**
+```bash
 brew install node
+```
 
-# Install Wails CLI
+**Step 3: Install Wails CLI**
+```bash
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
+```
+
+**Step 4: Add Go bin to PATH (Important!)**
+
+Add this line to your `~/.zshrc` file:
+```bash
+export PATH=$PATH:$(go env GOPATH)/bin
+```
+
+Then restart terminal or run:
+```bash
+source ~/.zshrc
+```
+
+**Verify Wails is installed:**
+```bash
+wails --version
+```
+
+You should see a version number. If you get `command not found`, try:
+```bash
+$(go env GOPATH)/bin/wails dev
 ```
 
 #### Run the Project

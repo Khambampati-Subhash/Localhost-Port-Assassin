@@ -10,8 +10,16 @@ export function GetConfig() {
   return window['go']['main']['App']['GetConfig']();
 }
 
+export function HideWindow() {
+  return window['go']['main']['App']['HideWindow']();
+}
+
 export function KillProcess(arg1) {
   return window['go']['main']['App']['KillProcess'](arg1);
+}
+
+export function KillProcessWithPassword(arg1, arg2) {
+  return window['go']['main']['App']['KillProcessWithPassword'](arg1, arg2);
 }
 
 export function SaveConfig(arg1) {
