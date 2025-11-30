@@ -36,12 +36,19 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Subtle dot pattern */
+    background-image: radial-gradient(hsl(var(--muted-foreground)) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: 0 0;
+    /* Fade out pattern */
+    mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {

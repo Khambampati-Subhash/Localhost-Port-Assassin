@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { usePortStore } from '../store/usePortStore';
 import { PortCard } from './PortCard';
-import { Plus, Search, RefreshCw, Bell, BellOff, Shield, Filter } from 'lucide-react';
+import { Plus, Search, RefreshCw, Bell, BellOff, Shield, Filter, Activity, Eye, Server } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Badge } from './ui/badge';
+import { Layout } from './Layout';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function Dashboard() {
     const {
@@ -71,136 +72,171 @@ export function Dashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground p-6 md:p-10 max-w-7xl mx-auto animate-fade-in">
-            {/* Header Section */}
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b pb-8">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Port Assassin</h1>
-                    <p className="text-muted-foreground mt-1">Manage localhost processes and ports</p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-4 px-4 py-2 rounded-lg bg-secondary/50 border mr-2">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span className="text-sm font-medium">{activeCount} Active</span>
+        <Layout>
+            <div className="space-y-8">
+                {/* Header & Stats */}
+                <div className="flex flex-col gap-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                            <p className="text-muted-foreground">Overview of your localhost environment</p>
                         </div>
-                        <div className="w-px h-4 bg-border"></div>
                         <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                            <span className="text-sm font-medium">{watchedCount} Watched</span>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={toggleNotifications}
+                                title={notificationsEnabled ? "Notifications On" : "Notifications Off"}
+                            >
+                                {notificationsEnabled ? <Bell size={18} /> : <BellOff size={18} />}
+                            </Button>
+                            <Button onClick={() => setIsAddModalOpen(true)} className="gap-2">
+                                <Plus size={16} />
+                                Add Port
+                            </Button>
                         </div>
                     </div>
 
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={toggleNotifications}
-                        title={notificationsEnabled ? "Notifications On" : "Notifications Off"}
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Active Ports</CardTitle>
+                                <Activity className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{activeCount}</div>
+                                <p className="text-xs text-muted-foreground">Currently listening</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Watched Ports</CardTitle>
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{watchedCount}</div>
+                                <p className="text-xs text-muted-foreground">Monitored for activity</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Total Processes</CardTitle>
+                                <Server className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{activeCount}</div>
+                                <p className="text-xs text-muted-foreground">Running instances</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+
+                {/* Filters & Grid */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-1 max-w-sm">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                            <Input
+                                placeholder="Search ports, PIDs..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => fetchPorts()}
+                            className={loading ? 'animate-spin' : ''}
+                        >
+                            <RefreshCw className="h-4 w-4" />
+                        </Button>
+                    </div>
+
+                    <motion.div
+                        layout
+                        className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                     >
-                        {notificationsEnabled ? <Bell size={18} /> : <BellOff size={18} />}
-                    </Button>
-
-                    <Button onClick={() => setIsAddModalOpen(true)} className="gap-2">
-                        <Plus size={16} />
-                        Add Port
-                    </Button>
-                </div>
-            </header>
-
-            {/* Controls Bar */}
-            <div className="flex items-center gap-3 mb-8">
-                <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                    <Input
-                        type="text"
-                        placeholder="Search ports..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-9"
-                    />
-                </div>
-                <Button variant="outline" size="icon">
-                    <Filter size={16} />
-                </Button>
-                <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => fetchPorts()}
-                    className={loading ? 'animate-spin' : ''}
-                    title="Refresh Ports"
-                >
-                    <RefreshCw size={16} />
-                </Button>
-            </div>
-
-            {/* Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {sortedPorts.map(([port, data], index) => (
-                    <div key={port} className="animate-slide-up" style={{ animationDelay: `${index * 30}ms` }}>
-                        <PortCard
-                            port={port}
-                            info={data.info}
-                            isWatched={data.isWatched}
-                        />
-                    </div>
-                ))}
-
-                {sortedPorts.length === 0 && (
-                    <div className="col-span-full flex flex-col items-center justify-center py-24 text-muted-foreground border border-dashed rounded-xl bg-secondary/20">
-                        <Search size={32} className="mb-3 opacity-50" />
-                        <p className="text-sm">No ports found matching your criteria</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Add Port Modal */}
-            {isAddModalOpen && (
-                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-                    <Card className="w-full max-w-sm shadow-2xl animate-slide-up">
-                        <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-md bg-secondary text-primary">
-                                    <Shield size={18} />
-                                </div>
-                                <div>
-                                    <CardTitle>Watch Port</CardTitle>
-                                    <CardDescription>Monitor a specific port</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={handleAddPort}>
-                                <div className="mb-5">
-                                    <label className="block text-xs font-medium text-muted-foreground uppercase mb-1.5">Port Number</label>
-                                    <Input
-                                        type="number"
-                                        placeholder="3000"
-                                        value={newPort}
-                                        onChange={(e) => setNewPort(e.target.value)}
-                                        className="font-mono"
-                                        autoFocus
+                        <AnimatePresence>
+                            {sortedPorts.map(([port, data]) => (
+                                <motion.div
+                                    key={port}
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <PortCard
+                                        port={port}
+                                        info={data.info}
+                                        isWatched={data.isWatched}
                                     />
-                                </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </motion.div>
 
-                                <div className="flex gap-3">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="flex-1"
-                                        onClick={() => setIsAddModalOpen(false)}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button type="submit" className="flex-1">
-                                        Add Port
-                                    </Button>
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
+                    {sortedPorts.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground border border-dashed rounded-lg">
+                            <Search className="h-8 w-8 mb-4 opacity-50" />
+                            <h3 className="text-lg font-semibold">No ports found</h3>
+                            <p className="text-sm">Try adjusting your search or add a new port to watch.</p>
+                        </div>
+                    )}
                 </div>
-            )}
-        </div>
+
+                {/* Add Port Modal */}
+                <AnimatePresence>
+                    {isAddModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="w-full max-w-md"
+                            >
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Watch New Port</CardTitle>
+                                        <CardDescription>
+                                            Enter a port number to monitor for activity.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <form onSubmit={handleAddPort} className="space-y-4">
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                                    Port Number
+                                                </label>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="e.g. 3000"
+                                                    value={newPort}
+                                                    onChange={(e) => setNewPort(e.target.value)}
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() => setIsAddModalOpen(false)}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button type="submit">
+                                                    Start Watching
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </Layout>
     );
 }

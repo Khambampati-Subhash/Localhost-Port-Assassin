@@ -1,9 +1,10 @@
-import { Trash2, Terminal, Eye, EyeOff } from 'lucide-react';
+import { Trash2, Terminal, Eye, EyeOff, Activity } from 'lucide-react';
 import { PortInfo, usePortStore } from '../store/usePortStore';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
+import { motion } from 'framer-motion';
 
 interface PortCardProps {
     port: number;
@@ -19,31 +20,31 @@ export function PortCard({ port, info, isWatched }: PortCardProps) {
 
     return (
         <Card className={cn(
-            "group transition-all duration-200",
+            "group relative overflow-hidden transition-all duration-300 hover:shadow-lg border-l-4",
             isFree
-                ? "bg-card hover:border-green-500/40"
-                : "bg-secondary/10 hover:border-blue-500/40"
+                ? "border-l-green-500 hover:border-green-500/50"
+                : "border-l-blue-500 hover:border-blue-500/50"
         )}>
             <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                         <div className={cn(
-                            "w-8 h-8 rounded flex items-center justify-center border",
+                            "w-10 h-10 rounded-lg flex items-center justify-center border shadow-sm transition-colors",
                             isFree
-                                ? "bg-green-500/10 border-green-500/20 text-green-500"
-                                : "bg-blue-500/10 border-blue-500/20 text-blue-500"
+                                ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
+                                : "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
                         )}>
-                            <Terminal size={14} />
+                            <Terminal size={18} />
                         </div>
                         <div>
-                            <span className="block text-lg font-mono font-medium">{port}</span>
+                            <span className="block text-xl font-bold font-mono tracking-tight">{port}</span>
                         </div>
                     </div>
 
                     <div className="flex gap-2">
                         {isWatched && (
-                            <Badge variant="secondary" className="text-[10px] uppercase tracking-wider h-5 px-1.5">
-                                <Eye size={10} className="mr-1" />
+                            <Badge variant="secondary" className="text-[10px] uppercase tracking-wider h-6 px-2 font-semibold">
+                                <Eye size={10} className="mr-1.5" />
                                 Watched
                             </Badge>
                         )}
@@ -62,23 +63,26 @@ export function PortCard({ port, info, isWatched }: PortCardProps) {
                 </div>
             </CardHeader>
 
-            <CardContent className="p-4 pt-2 space-y-3">
+            <CardContent className="p-4 pt-3 space-y-4">
                 {isFree ? (
-                    <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-green-500">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                            <span className="text-xs font-medium">Available</span>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            <span className="text-xs font-semibold uppercase tracking-wide">Available</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">No process running</p>
+                        <p className="text-xs text-muted-foreground">Ready for new processes</p>
                     </div>
                 ) : (
                     <>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <div className="flex justify-between items-center text-xs text-muted-foreground">
-                                <span>Process</span>
-                                <span className="font-mono">PID: {info.pid}</span>
+                                <span className="uppercase tracking-wider font-semibold">Process</span>
+                                <span className="font-mono bg-secondary px-1.5 py-0.5 rounded text-[10px]">PID: {info.pid}</span>
                             </div>
-                            <div className="font-medium text-sm truncate" title={info.process}>
+                            <div className="font-medium text-sm truncate p-2 bg-secondary/30 rounded-md border border-border/50" title={info.process}>
                                 {info.process}
                             </div>
                         </div>
@@ -86,7 +90,7 @@ export function PortCard({ port, info, isWatched }: PortCardProps) {
                         <Button
                             variant="destructive"
                             size="sm"
-                            className="w-full h-8 text-xs"
+                            className="w-full h-8 text-xs font-medium shadow-sm opacity-90 hover:opacity-100 transition-opacity"
                             onClick={() => killProcess(info.pid)}
                         >
                             <Trash2 size={12} className="mr-2" />
@@ -95,6 +99,9 @@ export function PortCard({ port, info, isWatched }: PortCardProps) {
                     </>
                 )}
             </CardContent>
+
+            {/* Background Pattern */}
+            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:16px_16px] pointer-events-none" />
         </Card>
     );
 }
