@@ -103,3 +103,8 @@ func (a *App) GetConfig() (*config.Config, error) {
 func (a *App) SaveConfig(cfg *config.Config) error {
 	return config.SaveConfig(cfg)
 }
+
+// HideWindow hides the application window
+func (a *App) HideWindow() {
+	runtime.WindowHide(a.ctx)
+}

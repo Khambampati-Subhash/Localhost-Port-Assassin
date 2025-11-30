@@ -7,6 +7,8 @@ export function GetActivePorts():Promise<Array<sys.PortInfo>>;
 
 export function GetConfig():Promise<config.Config>;
 
+export function HideWindow():Promise<void>;
+
 export function KillProcess(arg1:number):Promise<void>;
 
 export function KillProcessWithPassword(arg1:number,arg2:string):Promise<void>;
