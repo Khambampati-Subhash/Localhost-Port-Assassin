@@ -9,7 +9,7 @@ Which skills and agents to use for which job in this repo (Claude Code; other ag
 | Writing any code | `superpowers:test-driven-development` |
 | A test fails or behaviour is odd | `superpowers:systematic-debugging` before changing code |
 | Before saying "done" | `superpowers:verification-before-completion` (run `Scripts/test.sh` and read the output) |
-| Any change to `SudoSession`, `PrivilegedCommand`, `PasswordVault`, `AuthStore` | `security-review`, plus a reviewer subagent |
+| Any change to `SudoSession`, `PrivilegedCommand`, `AuthStore`, `UnlockSheet` | `security-review`, plus a reviewer subagent |
 | End of a task or phase | `superpowers:requesting-code-review` / `code-review` |
 | Receiving review feedback | `superpowers:receiving-code-review` |
 | UI polish (glass, spacing, colour, accessibility) | `ui-ux-pro-max:ui-ux-pro-max` (SwiftUI stack) |

@@ -45,9 +45,10 @@ Resources/Info.plist   bundle metadata (LSUIElement, min OS 26.0)
    - All privileged execution goes through `SudoSession.run(_: PrivilegedCommand)`. Never call `/usr/bin/sudo` anywhere else.
    - Never use a shell (`sh -c`) and never build a command from user input.
    - The password goes to sudo on **stdin only**. It must never appear in argv, environment, `print`, `Logger`/`os_log`, error messages, fixtures or test names.
+   - **Never store the password**: no Keychain, files, UserDefaults/`@AppStorage` or state restoration. It lives in memory inside `SudoSession` only while unlocked.
    - Never auto-retry a failed authentication.
    - Tests use `Fixtures/fake-sudo.sh`, never the real sudo.
-2. `PortKit` imports only Foundation, Darwin, Security and LocalAuthentication. No SwiftUI or AppKit.
+2. `PortKit` imports only Foundation and Darwin. No SwiftUI or AppKit.
 3. Use strict concurrency. Stores are `@MainActor @Observable`, `SudoSession` is an `actor`, and model types are `Sendable` value types.
 4. Glass belongs to navigation and controls (sidebar, toolbar, hover actions, sheets, popover), not to content rows. Everything must stay legible with Reduce Transparency and Increase Contrast, and Reduce Motion disables shake and morph animations.
 5. Keep files focused (< ~300 lines). No force unwraps outside tests.

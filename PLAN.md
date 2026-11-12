@@ -8,7 +8,7 @@
 
 **Architecture:** One SwiftPM package. `PortKit` (library, no UI) runs the system tools `/usr/sbin/lsof`, `/bin/ps` and `/bin/kill`, either directly as the user or via `/usr/bin/sudo -S` with the password on stdin. It parses their output into `Listener` values. The `PortAssassin` executable (SwiftUI) polls `PortKit`, renders the glass UI and holds the unlocked sudo session in memory. A script wraps the binary into an ad-hoc-signed `.app`.
 
-**Tech Stack:** Swift 6.4 (strict concurrency), SwiftUI (macOS 26+ Liquid Glass: `glassEffect`, `GlassEffectContainer`, `.buttonStyle(.glass)`), Swift Testing, Security.framework (Keychain), LocalAuthentication (Touch ID), ServiceManagement (`SMAppService.mainApp` for launch at login). **No Rust and no third-party dependencies.** The system tools plus sudo cover everything a backend would do. Rust is reserved for a possible later CLI (see Roadmap).
+**Tech Stack:** Swift 6.4 (strict concurrency), SwiftUI (macOS 26+ Liquid Glass: `glassEffect`, `GlassEffectContainer`, `.buttonStyle(.glass)`), Swift Testing, ServiceManagement (`SMAppService.mainApp` for launch at login). **No Rust and no third-party dependencies.** The system tools plus sudo cover everything a backend would do. Rust is reserved for a possible later CLI (see Roadmap).
 
 **Spec:** Part 1 of this file.
 
@@ -23,7 +23,7 @@ Developers hit "port already in use" constantly. Today the fix is `sudo lsof -i 
 **Success criteria**
 1. Opening the menu bar popover shows current listeners in < 300 ms (user mode).
 2. Typing `8080` and pressing Kill frees the port and confirms it's free.
-3. After entering the sudo password once, root/system listeners appear and can be stopped. The password is never written to disk unless the user opts into Touch ID storage, and it never appears in argv, env, logs or crash output.
+3. After entering the sudo password once, root/system listeners appear and can be stopped. The password is **never stored**: no Keychain, files or UserDefaults. It lives only in memory while unlocked and never appears in argv, env, logs or crash output.
 4. Builds and tests with **Command Line Tools only** (no Xcode required).
 
 ## 2. Environment facts (verified 2026-11-12)
@@ -85,10 +85,7 @@ Two modes, shown as a badge in the UI:
 7. **Auto-lock:** after `autoLockMinutes` (default 15, range 1–120) with no privileged *user action* (polling doesn't count), on screen lock (`com.apple.screenIsLocked` distributed notification), on system sleep (`NSWorkspace.willSleepNotification`) and on app quit.
 8. **Polling cost:** each admin poll = 2 sudo calls (lsof + ps). Sudo logs each call to the unified log, which IT can see on managed Macs. So admin-mode polling defaults to **10 s** (range 5–60), user mode to **2 s** (range 1–30). Polling runs only while the window or popover is visible. ⌘R refreshes on demand.
 
-**Remember with Touch ID (opt-in toggle on the unlock sheet)**
-- Stores the password as a generic-password item (service `com.khambampati.portassassin.sudo`, account = login name) in the login keychain. Reading it requires a successful `LAContext.evaluatePolicy(.deviceOwnerAuthentication)` first.
-- Known limitation: ad-hoc-signed apps can't use the data-protection keychain with biometric ACLs (needs a team ID / keychain-access-groups entitlement). Upgrade path in Roadmap Phase 3.
-- `.incorrectPassword` on a stored password (it was changed) → delete the item and show the unlock sheet.
+**No password storage (decided 2026-11-12):** the password is never persisted, with no Keychain, Touch ID "remember", files, UserDefaults or state restoration. Every unlock means typing it again. The only copy lives inside the `SudoSession` actor while unlocked, and quitting, locking or auto-lock wipes it.
 
 ## 4. Data model & behaviour
 
@@ -156,7 +153,7 @@ Glass belongs to the **navigation and controls layer** floating above content (A
     - Footer: "Open Port Assassin" and "Quit".
 - **Unlock sheet (glass card):**
   - Lock symbol and the text *"Enter your Mac password to see and stop processes owned by other users and the system."*
-  - Controls: `SecureField`, "Remember with Touch ID" toggle, Cancel / Unlock.
+  - Controls: `SecureField`, Cancel / Unlock. Footnote: *"Your password is kept in memory only until the app locks. It's never saved."*
   - Errors: incorrect password → inline red text + horizontal shake. Not permitted → *"Your account can't use sudo on this Mac. Ask your IT admin."*
 - **States:** loading skeleton; empty ("No ports listening" / "No matches for …"); error banner with Retry.
 - **Keyboard:** ⌘F search, ⌘R refresh, ⌫ stop selected (with confirm), ⌘U unlock, ⌘L lock, ⌘, settings.
@@ -166,7 +163,6 @@ Glass belongs to the **navigation and controls layer** floating above content (A
   - Auto-lock minutes.
   - "Confirm before stopping dev servers".
   - Launch at login (`SMAppService.mainApp`).
-  - "Forget stored password".
 - **Activation:** the app runs as an accessory (`LSUIElement` = true, menu bar only) and switches to `.regular` while the main window is open.
 
 ## 6. Out of scope for Phase 1 (YAGNI)
@@ -190,7 +186,7 @@ Port watching/notifications, pinned ports, Docker container name mapping, global
 
 ## Review Focus
 
-1. **Wrong or changed password:** exactly one sudo attempt per user action, a clear inline error, and a stored Keychain password gets deleted. Never a retry loop (account lockout). → Task 4 test `incorrectPasswordIsNotRetried`.
+1. **Wrong or changed password:** exactly one sudo attempt per user action, a clear inline error. Never a retry loop (account lockout). → Task 4 test `incorrectPasswordIsNotRetried`.
 2. **Password leakage:** the password must not appear in `CommandResult`, error descriptions or the argv of the spawned process. → Task 4 test `passwordNeverInArgvOrErrors`.
 3. **Process exits or respawns between scan and kill** (`ESRCH`, launchd KeepAlive, nodemon). Must report `.freed` / `.portTakenBy`, never crash or claim success wrongly. → Task 5 tests `alreadyExitedCountsAsFreed`, `respawnReportsNewOwner`.
 4. **Same port, several sockets/pids** (IPv4+IPv6 duplicates; nginx master+workers sharing a port; UDP `*:*`). Duplicates merge, multi-pid shows multiple rows, unbound UDP is dropped. → Task 1 tests `mergesIPv4AndIPv6`, `keepsSeparatePidsOnSamePort`, `dropsUnboundUDP`.
@@ -217,12 +213,11 @@ Sources/PortKit/
   SudoSession.swift         # actor; validate/run/lock; SudoError
   PortScanner.swift         # scan(mode:) using runner or sudo
   ProcessKiller.swift       # KillPolicy, terminate flow, KillOutcome, KillError
-  PasswordVault.swift       # PasswordVault protocol + KeychainPasswordVault
 Sources/PortAssassin/
   PortAssassinApp.swift     # @main, WindowGroup, MenuBarExtra, Settings
   AppSettings.swift         # @AppStorage-backed values
   ListenerStore.swift       # @Observable; polling, selection, filtering
-  AuthStore.swift           # @Observable; unlock/lock/auto-lock, vault
+  AuthStore.swift           # @Observable; unlock/lock/auto-lock
   Views/MainWindow.swift    # NavigationSplitView + toolbar + search
   Views/SidebarView.swift
   Views/ListenerRow.swift
@@ -416,45 +411,29 @@ Tests/PortKitTests/
 - [ ] **Step 4:** Run `Scripts/test.sh`. Expected: pass.
 - [ ] **Step 5: Commit.** `feat(portkit): kill policy and graceful terminate flow`
 
-### Task 6: Password vault
-
-**Files:**
-- Create: `Sources/PortKit/PasswordVault.swift`
-- Test: none automated against the real Keychain (it needs interactive Touch ID). Add an `InMemoryPasswordVault` used by the app's previews. Verify the real one manually in Task 9.
-
-**Interfaces:**
-- Produces:
-  - `protocol PasswordVault: Sendable { func save(_ password: String) throws; func load(reason: String) async throws -> String?; func delete() throws; var hasStoredPassword: Bool { get } }`
-  - `struct KeychainPasswordVault: PasswordVault` (service `com.khambampati.portassassin.sudo`, account `NSUserName()`; `load` first runs `LAContext().evaluatePolicy(.deviceOwnerAuthentication, localizedReason:)`)
-  - `final class InMemoryPasswordVault: PasswordVault`
-
-- [ ] **Step 1:** Implement with `SecItemAdd`/`SecItemCopyMatching`/`SecItemDelete` (`kSecClassGenericPassword`). `save` deletes first, then adds. A Touch ID cancel returns nil (not an error).
-- [ ] **Step 2:** Run `Scripts/build.sh`. Expected: `Build complete!`
-- [ ] **Step 3: Commit.** `feat(portkit): keychain password vault gated by Touch ID`
-
-### Task 7: App shell, bundling, stores
+### Task 6: App shell, bundling, stores
 
 **Files:**
 - Create: `Resources/Info.plist`, `Scripts/bundle.sh`, `Scripts/run.sh`, `Sources/PortAssassin/AppSettings.swift`, `ListenerStore.swift`, `AuthStore.swift`
 - Modify: `Sources/PortAssassin/PortAssassinApp.swift`
 
 **Interfaces:**
-- Consumes: `PortScanner`, `ProcessKiller`, `SudoSession`, `PasswordVault`, `SearchQuery`, `KillPolicy`.
+- Consumes: `PortScanner`, `ProcessKiller`, `SudoSession`, `SearchQuery`, `KillPolicy`.
 - Produces:
   - `@MainActor @Observable final class ListenerStore { var listeners: [Listener]; var query: String; var category: ListenerCategory?; var selection: Listener.ID?; var lastError: String?; var filtered: [Listener] { get }; func counts() -> [ListenerCategory: Int]; func refresh() async; func startPolling(); func stopPolling(); func stop(_ l: Listener, force: Bool) async -> KillOutcome? }`
-  - `@MainActor @Observable final class AuthStore { var mode: PrivilegeMode; var isUnlocked: Bool; var lockDeadline: Date?; var unlockError: String?; func unlock(password: String, remember: Bool) async; func unlockWithStoredPassword() async; func lock(); func noteUserAction() }`
+  - `@MainActor @Observable final class AuthStore { var mode: PrivilegeMode; var isUnlocked: Bool; var lockDeadline: Date?; var unlockError: String?; func unlock(password: String) async; func lock(); func noteUserAction() }`
 
 - [ ] **Step 1:** Write `Info.plist`: `CFBundleIdentifier` `com.khambampati.portassassin`, `CFBundleName`/`CFBundleDisplayName` `Port Assassin`, `CFBundleExecutable` `PortAssassin`, `LSMinimumSystemVersion` `26.0`, `LSUIElement` true, `CFBundleShortVersionString` `2.0.0`.
 - [ ] **Step 2:** Write `bundle.sh`. It runs `Scripts/build.sh`, creates `build/Port Assassin.app/Contents/{MacOS,Resources}`, copies the binary and plist, then runs `codesign --force --sign - --timestamp=none "build/Port Assassin.app"`. `run.sh` = `bundle.sh && open "build/Port Assassin.app"`.
 - [ ] **Step 3:** Implement the stores.
   - **Polling:** a `Task` loop sleeps `userPollSeconds` or `adminPollSeconds` from `AppSettings`. Polling runs only while `visibleSurfaces > 0`; the views call `startPolling()`/`stopPolling()` via `onAppear`/`onDisappear`.
   - **`AuthStore` auto-lock:** follows §3 rule 7. Observe `com.apple.screenIsLocked` on `DistributedNotificationCenter` and `NSWorkspace.willSleepNotification`. A 30 s timer checks `lockDeadline`.
-  - **Stored password:** `.incorrectPassword` from a stored password → `vault.delete()`.
+  - **No persistence:** `unlock` passes the password straight to `SudoSession(password:)` and keeps no other reference. On `lock()`, call `session.lock()` and drop the session.
 - [ ] **Step 4:** Write `PortAssassinApp.swift`: `WindowGroup(id: "main")`, `MenuBarExtra(…, systemImage: "bolt.horizontal.circle") { … }.menuBarExtraStyle(.window)`, `Settings`. Inject the stores via `.environment`. Switch the activation policy to `.regular` when the main window appears and to `.accessory` when it disappears.
 - [ ] **Step 5:** Run `Scripts/run.sh`. Expected: the app launches, a menu bar icon appears, and there's no Dock icon until the window opens. Run `Scripts/test.sh`: still green.
 - [ ] **Step 6: Commit.** `feat(app): app shell, bundling script, listener and auth stores`
 
-### Task 8: Main window with Liquid Glass
+### Task 7: Main window with Liquid Glass
 
 **Files:**
 - Create: `Views/MainWindow.swift`, `SidebarView.swift`, `ListenerRow.swift`, `InspectorView.swift`, `KillConfirmation.swift`
@@ -479,23 +458,23 @@ Tests/PortKitTests/
 - [ ] **Step 5:** Turn on System Settings › Accessibility › Display › Reduce Transparency, then Increase Contrast. Expected: everything stays legible and controls stay visible.
 - [ ] **Step 6: Commit.** `feat(app): liquid glass main window, inspector, kill confirmation`
 
-### Task 9: Unlock sheet and admin mode end-to-end
+### Task 8: Unlock sheet and admin mode end-to-end
 
 **Files:**
 - Create: `Views/UnlockSheet.swift`
 - Modify: `MainWindow.swift`, `AuthStore.swift` (if needed)
 
-- [ ] **Step 1:** Build the §5 unlock sheet: glass card, `SecureField` (Return submits), Remember toggle, inline errors, shake with `phaseAnimator` (off with Reduce Motion), and the not-permitted copy exactly as in §5. The Unlock button is disabled while a request is in flight, so double Returns can't send two attempts (Review Focus 1).
+- [ ] **Step 1:** Build the §5 unlock sheet: glass card, `SecureField` (Return submits; the field is cleared after every attempt), inline errors, shake with `phaseAnimator` (off with Reduce Motion), and the not-permitted copy exactly as in §5. The Unlock button is disabled while a request is in flight, so double Returns can't send two attempts (Review Focus 1).
 - [ ] **Step 2:** Manual verification:
   - **(a)** Wrong password → "Incorrect password", one attempt. Check with `log show --last 2m --predicate 'process == "sudo"' | grep -c incorrect`, which should print 1.
   - **(b)** Correct password → root listeners appear (e.g. `mDNSResponder`, `launchd` sockets), and the badge shows "Admin · locks in 15 min".
   - **(c)** Stop a root-owned test listener: `sudo nc -l 127.0.0.1 9999` → caution confirm → `.freed`.
   - **(d)** Lock the screen → the app returns to User mode.
-  - **(e)** Remember with Touch ID → quit, relaunch, Unlock → Touch ID prompt → admin mode without typing.
-  - **(f)** `ps -axww -o args | grep -c hunter` while unlocked with a test password prints 0.
+  - **(e)** Quit and relaunch → back in User mode, and Unlock asks for the password again.
+  - **(f)** `pgrep -lf hunter` while unlocked with a test password prints nothing.
 - [ ] **Step 3: Commit.** `feat(app): unlock sheet and admin mode`
 
-### Task 10: Menu bar popover
+### Task 9: Menu bar popover
 
 **Files:**
 - Create: `Views/MenuBarPopover.swift`
@@ -509,15 +488,15 @@ Tests/PortKitTests/
 - [ ] **Step 2:** Manual verification: start `python3 -m http.server 8765`, type `8765` in Free port, press Return and confirm → "Port 8765 is free".
 - [ ] **Step 3: Commit.** `feat(app): menu bar popover with free-port action`
 
-### Task 11: Settings, launch at login, README, final verification
+### Task 10: Settings, launch at login, README, final verification
 
 **Files:**
 - Create: `Views/SettingsView.swift`, `README.md`
 
-- [ ] **Step 1:** Build `SettingsView`: steppers for the poll intervals and auto-lock (ranges from §3), the confirm toggle, a launch-at-login toggle (`SMAppService.mainApp.register()`/`unregister()` with status shown), and "Forget stored password" (disabled when `!vault.hasStoredPassword`).
+- [ ] **Step 1:** Build `SettingsView`: steppers for the poll intervals and auto-lock (ranges from §3), the confirm toggle, a launch-at-login toggle (`SMAppService.mainApp.register()`/`unregister()` with status shown).
 - [ ] **Step 2:** Write `README.md`: what the app is, a screenshot placeholder path `docs/screenshot.png`, requirements (macOS 26+, CLT), `Scripts/run.sh`, a privilege explanation (user vs admin, how the password is handled) and the limitations from §3.
-- [ ] **Step 3: Final verification.** Run `Scripts/test.sh` → all tests pass (paste the counts). Run `Scripts/bundle.sh` → `.app` produced. Run `codesign -dv "build/Port Assassin.app"` → `Signature=adhoc`. Repeat the Task 8 and Task 9 manual checks.
-- [ ] **Step 4:** Run the `security-review` skill on `SudoSession.swift`, `PasswordVault.swift`, `AuthStore.swift`, and a final whole-branch review via `superpowers:requesting-code-review`.
+- [ ] **Step 3: Final verification.** Run `Scripts/test.sh` → all tests pass (paste the counts). Run `Scripts/bundle.sh` → `.app` produced. Run `codesign -dv "build/Port Assassin.app"` → `Signature=adhoc`. Run `grep -rnE 'SecItem|Keychain|LAContext|UserDefaults|AppStorage' Sources | grep -i pass`. Expected: no output (the password is never persisted). Repeat the Task 7 and Task 8 manual checks.
+- [ ] **Step 4:** Run the `security-review` skill on `SudoSession.swift`, `AuthStore.swift`, `UnlockSheet.swift`, and a final whole-branch review via `superpowers:requesting-code-review`.
 - [ ] **Step 5: Commit.** `feat(app): settings, launch at login, README`
 
 ---
@@ -533,7 +512,6 @@ Tests/PortKitTests/
   - Port history log.
 - **Phase 3 — Distribution:**
   - Developer ID signing + notarization.
-  - Data-protection keychain with a `.biometryCurrentSet` ACL (needs a team ID).
   - Sparkle updates.
   - Homebrew cask.
   - Optional `pa` CLI. **Rust is used only if the CLI is built**, sharing nothing with the app except the documented lsof format.
